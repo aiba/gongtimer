@@ -1,5 +1,6 @@
 (ns gongtimer.core
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import java.net.URL
            [javax.sound.sampled AudioSystem Line$Info Mixer$Info SourceDataLine]))
 
@@ -17,7 +18,9 @@
          (filter (fn [^Mixer$Info mi]
                    (-> mi
                        AudioSystem/getMixer
-                       (.isLineSupported output-line)))))))
+                       (.isLineSupported output-line))))
+         (remove (fn [^Mixer$Info mi]
+                   (= "Default Audio Device" (.getName mi)))))))
 
 (defn play-audio-url! [^URL url, ^Mixer$Info mixer-info]
   (let [s (-> url url->bytes io/input-stream AudioSystem/getAudioInputStream)]
