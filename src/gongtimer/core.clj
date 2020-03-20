@@ -1,6 +1,5 @@
 (ns gongtimer.core
-  (:require [clojure.java.io :as io]
-            [clojure.string :as str])
+  (:require [clojure.java.io :as io])
   (:import java.net.URL
            [javax.sound.sampled AudioSystem Line$Info Mixer$Info SourceDataLine]))
 
@@ -27,7 +26,12 @@
     (future
       (doto (AudioSystem/getClip mixer-info) (.open s) (.start)))))
 
+(def gong-sound-url (io/resource "gong.wav"))
+
+(defn gong! []
+  (doseq [m (output-mixers)]
+    (play-audio-url! gong-sound-url m)))
+
 (comment
-  (play-audio-url! (io/resource "gong-chinese-1.wav")
-                   (last (output-mixers)))
+  (gong!)
   )
