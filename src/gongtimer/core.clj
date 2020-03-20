@@ -32,6 +32,17 @@
   (doseq [m (output-mixers)]
     (play-audio-url! gong-sound-url m)))
 
+(defn sleep-rand-mins [a b]
+  (let [n (+ a (* (rand) (- b a)))]
+    (println "sleeping for" n "minutes")
+    (Thread/sleep (int (* 1000 60 n)))))
+
+(defn -main [& args]
+  (loop []
+    (gong!)
+    (sleep-rand-mins 1 7)
+    (recur)))
+
 (comment
   (gong!)
   )
