@@ -33,9 +33,9 @@
     (play-audio-url! gong-sound-url m)))
 
 (defn sleep-rand-mins [a b]
-  (let [n (+ a (* (rand) (- b a)))]
-    (println "sleeping for" n "minutes")
-    (Thread/sleep (int (* 1000 60 n)))))
+  (let [x (+ a (* (rand) (- b a)))]
+    (println (format "sleeping for %.2f minutes" x))
+    (Thread/sleep (int (* 1000 60 x)))))
 
 (defn -main [& args]
   (loop []
