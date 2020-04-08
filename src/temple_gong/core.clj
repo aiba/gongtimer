@@ -1,4 +1,4 @@
-(ns gongtimer.core
+(ns temple-gong.core
   (:require [clojure.java.io :as io])
   (:import java.net.URL
            [javax.sound.sampled AudioSystem Line$Info Mixer$Info SourceDataLine]))
