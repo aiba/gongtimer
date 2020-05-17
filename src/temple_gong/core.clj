@@ -1,8 +1,9 @@
 (ns temple-gong.core
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [clojure.pprint :refer [pprint]])
   (:import java.net.URL
            java.time.LocalDateTime
-           [javax.sound.sampled AudioSystem Line$Info Mixer$Info SourceDataLine]))
+           [javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer$Info SourceDataLine]))
 
 (def url->bytes
    (memoize
@@ -12,26 +13,48 @@
         (io/copy xin xout)
         (.toByteArray xout)))))
 
+(defn gain-config [mixer-name]
+  (let [f (io/file "volume.edn")
+        m (if (.exists f)
+            (read-string (slurp f))
+            {})
+        m (update m mixer-name #(double (or % 0)))]
+    (spit f (with-out-str (pprint m)))
+    (get m mixer-name)))
+
 (defn output-mixers []
   (let [output-line (Line$Info. SourceDataLine)]
     (->> (AudioSystem/getMixerInfo)
-         (filter (fn [^Mixer$Info mi]
-                   (-> mi
-                       AudioSystem/getMixer
-                       (.isLineSupported output-line))))
-         (remove (fn [^Mixer$Info mi]
-                   (= "Default Audio Device" (.getName mi)))))))
+         (map (fn [^Mixer$Info mi]
+                (let [mixer (AudioSystem/getMixer mi)]
+                  {:name (.getName mi)
+                   :mixer-info mi
+                   :mixer mixer})))
+         (filter (fn [{:keys [mixer]}]
+                   (.isLineSupported mixer output-line)))
+         (remove (fn [{:keys [mixer-info]}]
+                   (= "Default Audio Device" (.getName mixer-info)))))))
 
-(defn play-audio-url! [^URL url, ^Mixer$Info mixer-info]
-  (let [s (-> url url->bytes io/input-stream AudioSystem/getAudioInputStream)]
-    (future
-      (doto (AudioSystem/getClip mixer-info) (.open s) (.start)))))
+(defn set-gain! [^Clip clip, ^double x]
+  (-> clip
+      (.getControl FloatControl$Type/MASTER_GAIN)
+      (.setValue x)))
+
+(defn get-clip [^URL url, ^Mixer$Info mixer-info, gain]
+  (let [^AudioInputStream s (-> url url->bytes io/input-stream
+                                AudioSystem/getAudioInputStream)]
+    (doto (AudioSystem/getClip mixer-info)
+      (.open s)
+      (set-gain! gain))))
 
 (def gong-sound-url (io/resource "gong.wav"))
 
 (defn gong! []
-  (doseq [m (output-mixers)]
-    (play-audio-url! gong-sound-url m)))
+  (let [clips (doall
+               (for [{:keys [name mixer-info]} (output-mixers)]
+                 (get-clip gong-sound-url mixer-info (gain-config name))))]
+    (doseq [c clips]
+      (future (.start c)))))
 
 (defn sleep-rand-mins [a b]
   (let [x (+ a (* (rand) (- b a)))]
