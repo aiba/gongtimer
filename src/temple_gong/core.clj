@@ -5,6 +5,14 @@
            java.time.LocalDateTime
            [javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer$Info SourceDataLine]))
 
+(def day-hours [9, 21])  ;; only play gong 9am-9pm
+
+(defn day-time? []
+  (let [x (.getHour (LocalDateTime/now))
+        [a b] day-hours]
+    (and (<= a x)
+         (<= x b))))
+
 (def url->bytes
    (memoize
     (fn [^URL url]
@@ -18,9 +26,10 @@
         m (if (.exists f)
             (read-string (slurp f))
             {})
-        m (update m mixer-name #(double (or % 0)))]
+        m (update m mixer-name #(mapv double (or % [0 0])))
+        [day night] (get m mixer-name)]
     (spit f (with-out-str (pprint m)))
-    (get m mixer-name)))
+    (if (day-time?) day night)))
 
 (defn output-mixers []
   (let [output-line (Line$Info. SourceDataLine)]
@@ -60,14 +69,6 @@
   (let [x (+ a (* (rand) (- b a)))]
     (println (format "sleeping for %.2f minutes" x))
     (Thread/sleep (int (* 1000 60 x)))))
-
-(def day-hours [9, 21])  ;; only play gong 9am-9pm
-
-(defn day-time? []
-  (let [x (.getHour (LocalDateTime/now))
-        [a b] day-hours]
-    (and (<= a x)
-         (<= x b))))
 
 (defn -main [& args]
   (loop []
