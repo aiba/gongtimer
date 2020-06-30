@@ -7,7 +7,7 @@
 
 (set! *warn-on-reflection* true)
 
-(def ^:private day-hours [9, 21])
+(def ^:private day-hours [10, 21])
 
 (defn ^:private day-time? []
   (let [x (.getHour (LocalDateTime/now))
