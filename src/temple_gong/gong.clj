@@ -3,7 +3,9 @@
             [clojure.pprint :refer [pprint]])
   (:import java.net.URL
            java.time.LocalDateTime
-           [javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer$Info SourceDataLine]))
+           [javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer Mixer$Info SourceDataLine]))
+
+(set! *warn-on-reflection* true)
 
 (def ^:private day-hours [9, 21])
 
@@ -39,15 +41,14 @@
                   {:name (.getName mi)
                    :mixer-info mi
                    :mixer mixer})))
-         (filter (fn [{:keys [mixer]}]
+         (filter (fn [{:keys [^Mixer mixer]}]
                    (.isLineSupported mixer output-line)))
-         (remove (fn [{:keys [mixer-info]}]
+         (remove (fn [{:keys [^Mixer$Info mixer-info]}]
                    (= "Default Audio Device" (.getName mixer-info)))))))
 
 (defn ^:private set-gain! [^Clip clip, ^double x]
-  (-> clip
-      (.getControl FloatControl$Type/MASTER_GAIN)
-      (.setValue x)))
+  (let [^FloatControl ctrl (.getControl clip FloatControl$Type/MASTER_GAIN)]
+    (.setValue ctrl x)))
 
 (defn ^:private get-clip [^URL url, ^Mixer$Info mixer-info, gain]
   (let [^AudioInputStream s (-> url url->bytes io/input-stream
@@ -62,5 +63,5 @@
   (let [clips (doall
                (for [{:keys [name mixer-info]} (output-mixers)]
                  (get-clip gong-sound-url mixer-info (gain-config name))))]
-    (doseq [c clips]
+    (doseq [^Clip c clips]
       (future (.start c)))))
