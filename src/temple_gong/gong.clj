@@ -1,9 +1,11 @@
 (ns temple-gong.gong
-  (:require [clojure.java.io :as io]
-            [clojure.pprint :refer [pprint]])
-  (:import java.net.URL
-           java.time.LocalDateTime
-           [javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer Mixer$Info SourceDataLine]))
+  (:require
+   [clojure.java.io :as io]
+   [clojure.pprint :refer [pprint]])
+  (:import
+   (java.net URL)
+   (java.time LocalDateTime)
+   (javax.sound.sampled AudioSystem Clip FloatControl FloatControl$Type Line$Info Mixer Mixer$Info SourceDataLine)))
 
 (set! *warn-on-reflection* true)
 
@@ -28,7 +30,10 @@
         m (if (.exists f)
             (read-string (slurp f))
             {})
-        m (update m mixer-name #(mapv double (or % [0 0])))
+        m (if (contains? m mixer-name)
+            m
+            (assoc m mixer-name [0.0 0.0]))
+        ;;(update m mixer-name #(mapv double (or % [0 0])))
         [day night] (get m mixer-name)]
     (spit f (with-out-str (pprint m)))
     (if (day-time?) day night)))
@@ -61,7 +66,16 @@
 
 (defn play! []
   (let [clips (doall
-               (for [{:keys [name mixer-info]} (output-mixers)]
-                 (get-clip gong-sound-url mixer-info (gain-config name))))]
+               (for [{:keys [name mixer-info]} (output-mixers)
+                     :let [gain (gain-config name)]
+                     :when gain]
+                 (get-clip gong-sound-url mixer-info gain)))]
     (doseq [^Clip c clips]
       (future (.start c)))))
+
+(comment
+  (play!)
+  (output-mixers)
+  (gain-config "Sound Blaster Play! 3")
+  (gain-config "foo")
+  )
