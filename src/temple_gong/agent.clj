@@ -14,7 +14,7 @@
      (alog (format "sleeping for %.2f minutes" x))
      (Thread/sleep (int (* 1000 60 x)))))
   ([]
-   (sleep-rand-mins 1 7)
+   (sleep-rand-mins 5 20)
    ;;(sleep-rand-mins 0 1) ;; for debugging
    ))
 
