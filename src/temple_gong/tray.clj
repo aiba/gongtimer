@@ -85,9 +85,10 @@
     (render! icon)
     icon))
 
-(mount/defstate ^:private *icon
-  :start (new-tray-icon)
-  :stop (remove-all-trays!))
+(when (SystemTray/isSupported)
+  (mount/defstate ^:private *icon
+    :start (new-tray-icon)
+    :stop (remove-all-trays!)))
 
 (defn re-render! []
   (render! *icon))
